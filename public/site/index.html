@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+        <title>DFA Builder</title>
+
+        <link rel="stylesheet" type="text/css" href="../stylesheets/style.css">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+       
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+        <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+        
+        <script>
+            $(function(){
+                var includes = $('[data-include]');
+                jQuery.each(includes, function(){
+                    var file = $(this).data('include') + '.html';
+                    $(this).load(file);
+                });
+            });
+        </script>
+
+    </head>
+
+    <body>
+            
+        <!-- NAVIGATION -->
+        <div data-include="navigation"></div>
+        
+        <!-- FORM -->
+        <div class="container h-100" style="padding-bottom: 100px">
+            <div class="row h-100 justify-content-center align-items-center">
+                <div class="col-10 col-md-8 col-lg-6">
+                    
+                    <h1 class="text-center display-4">Formal Definition</h1>
+                    <p class="text-center lead mb-0">Use the form below to formally define your DFA</p>
+                    
+                    <div id="err-success-message" style="margin-top: 65px"></div>
+                    
+                    <!-- Q - Set of All States -->
+                    <div class="input-group mb-3" style="margin-top: 25px">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="q-symbol">Q</span>
+                            <span class="input-group-text" id="q-label">States</span>
+                        </div>
+                        <input id="states-input" type="text" class="form-control"
+                            placeholder="Set of all states"
+                            value="q0, q1, q2"> <!-- EXAMPLE -->
+                    </div>
+
+                    <!-- SIGMA - Set of acceptable inputs -->
+                    <div class="input-group mb-3" style="margin-top: 25px">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="sigma-symbol">Σ</span>
+                            <span class="input-group-text" id="sigma-label">Sigma</span>
+                        </div>
+                        <input id="sigma-input" type="text" class="form-control"
+                            placeholder="Set of all acceptable inputs"
+                            value="0, 1"> <!-- EXAMPLE -->
+                    </div>
+
+                    <!-- δ - DISPLAY RESPONSIVE TABLE HERE -->
+                    <div class="input-group mb-3" style="margin-top: 25px">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="delta-symbol">δ</span>
+                            <span class="input-group-text" id="delta-label">Delta</span>
+                        </div>
+
+                        <textarea id="delta-input" class="form-control" rows="3" aria-label="Large" 
+                            placeholder="Ex: q1, 0: q1, 1: q2"
+                            >q0, 0: q0, 1: q1\nq1, 0: q1, 1: q2\nq2, 0: q2, 1: q1</textarea>
+                    </div>
+                    <label>*Each line represents the transitions for a single state.</label>
+
+                    <!-- q0 - Initial/Start State -->
+                    <div class="input-group mb-3" style="margin-top: 25px">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="q0-label">q0</span>
+                        </div>
+                        <input id="q0-input" type="text" class="form-control" 
+                            placeholder="Start state" 
+                            value="q0"> <!-- EXAMPLE -->
+                    </div>
+
+                    <!-- F - Final/Accept States -->
+                    <div class="input-group mb-3" style="margin-top: 25px">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="f-label">F</span>
+                        </div>
+                        <input id="f-input" type="text" class="form-control" 
+                            placeholder="Set of all final/accept states"
+                            value="q2"> <!-- EXAMPLE -->
+                    </div>
+
+                    <hr/> <!-- Break -->
+
+                    <!-- String Input + Trigger Validation -->
+                    <div class="input-group mb-3" style="margin-top: 10px">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="string-label">String</span>
+                        </div>
+                        <input id="string-input" type="text" class="form-control" placeholder="0101" 
+                        value="1101101001"> <!-- EXAMPLE -->
+                        
+                        <div class="input-group-append">
+                            <button id="test-string" class="btn btn-primary">Validate</button>
+                        </div>
+                    </div>
+
+                    <div id="message-box" class="input-group mb-3" style="margin-top: 10px;"></div>
+
+                </div>
+            </div>
+        </div>
+
+        <script>
+        
+        // displays multiple lines for text area preview
+        var textAreas = document.getElementsByTagName('textarea');
+        Array.prototype.forEach.call(textAreas, function(elem) {
+            elem.value = elem.value.replace(/\\n/g, '\n');
+        });
+        
+        class DFA {
+            constructor(states, sigma) {
+                this.states = states;
+                this.sigma = sigma;
+            }
+
+            getNextState(curState, string){
+                console.log("str2: ", string);
+                console.log("str2: ", curState);
+                return this.states.get(curState.map.get(string));
+            }
+
+            valid(string, curState){
+                $('<hr style="width: 100%;">').appendTo('#message-box');
+                $('<label style="width: 100%;">Current state: '+curState.name+'</label>').appendTo('#message-box')
+                console.log("Current state: ", curState);
+                console.log("Remaining string: ", string);
+
+                if(string.length > 0){
+                    var nextState = this.getNextState(curState, string[0]);
+                    $('<label style="width: 100%;">Next state: '+string[0]+' ->  '+nextState.name+'</label>').appendTo('#message-box')
+                    $('<label style="width: 100%;">Remaining string: '+string+'</label>').appendTo('#message-box')
+                    return this.valid(string.slice(1), nextState);
+                } else if (curState.is_accept == true){
+                    $('<div class="alert alert-success" role="alert"><a class="alert-link">String Accepted!</a></div>').appendTo('#message-box')
+                    console.log("input stream accepted");
+                } else {
+                    $('<div class="alert alert-danger" role="alert"><a class="alert-link">String Rejected.</a></div>').appendTo('#message-box')
+                    console.log("String Rejected.")
+                }
+            }
+            
+            getStart(){
+                states.forEach(element =>{
+                    if(element.is_start == true){
+                        console.log("element", element);
+                        return element;
+                    }
+                    console.log("element is not start");
+                });
+            }
+
+            printer(string_out){
+                
+            }
+
+        }
+
+        class State{
+            constructor(name){
+                this.name = name;
+                this.map = new Map();
+                this.is_start = false;
+                this.is_accept = false;
+            }
+            makeStart(){ 
+                this.is_start = true; 
+            }
+            makeAccept(){ 
+                this.is_accept = true; 
+            }
+            addTransition(sigma, state){ 
+                this.map.set(sigma, state); 
+            }
+        }
+
+        function displayErr(err_string){
+            $('<div class="alert alert-warning alert-dismissible fade show" role="alert">'
+            + '<strong>Uh oh! </strong>' + err_string
+            + '<button type="button" class="close" data-dismiss="alert" aria-label="Close">'
+            +    '<span aria-hidden="true">&times;</span>'
+            + '</button>'
+            +'</div>').show().appendTo('#message-box');
+        }
+
+        function validateForm(states_in, sigma_in, q0_in, delta_lines, f_in, test_string){
+            // Err #1, a field is empty
+            if (states_in == "" || sigma_in == "" || q0_in == "" 
+                || delta_lines == "" || f_in == "" || test_string == "") {
+                    displayErr("Please make sure all fields are filled in");
+                    return false;
+            }
+            return true;
+        }
+
+        // --- Build DFA
+        document.getElementById("test-string").addEventListener("click", function() {
+            
+            // [1] Q        : The set of all states
+            // [2] Σ (sigma): The set of all accepted inputs
+            // [3] q0       : The start state
+            // [4] δ (delta): The transition function δ: Q X Σ ⟶ Q
+            // [5] F        : The set of accept states
+            var states_in = document.getElementById("states-input").value.split(/[ ,]+/);  // [1]
+            var sigma_in = document.getElementById("sigma-input").value.split(/[ ,]+/);    // [2]
+            var q0_in = document.getElementById("q0-input").value;                         // [3]
+            var delta_lines = document.getElementById("delta-input").value.split(/\r?\n/); // [4]
+            var f_in = document.getElementById("f-input").value.split(/[ ,]+/);            // [5]
+            // [6] - Test string
+            const test_string = document.getElementById("string-input").value;
+
+            $("#message-box").empty();
+            continued = validateForm(states_in, sigma_in, q0_in, delta_lines, f_in, test_string);
+
+            if (continued == true){
+
+                // 1. Load all states to map
+                states = new Map();
+                states_in.forEach(element => {states.set(element, new State(element))}); 
+                $('<label>States read.</label>').show().appendTo('#message-box')
+
+                // (test - console)
+                delta_lines.forEach(element => console.log(element.split(/, (?=[^,]+:)/).map(s => s.split(': '))));
+
+                // 2. Assign each state its corresponding transition:
+                // (each line is split into array with transitions for individual state)
+                delta_lines.forEach(element => {
+                    x = element.split(/, (?=[^,]+:)/).map(s => s.split(': '));
+                    for(var i = 1; i < x.length; i++){
+                        tmp = states.get(x[0][0]);           // get corresponding state
+                        tmp.addTransition(x[i][0], x[i][1]); // add transition to state
+                    }
+                });
+                $('<label style="width: 100%;">Transitions read. </label>').show().appendTo('#message-box')
+
+                // 3. Assign start state
+                states.get(q0_in).makeStart();
+                $('<label style="width: 100%;">...setting start state: '+q0_in+'</label>').show().appendTo('#message-box')
+
+                // 4. Assign accapt state(s)
+                f_in.forEach(element =>{
+                    states.get(element).makeAccept();
+                    // (test - DOM)
+                    $('<label style="width: 100%;">...setting accept state: '+element+'</label>').show().appendTo('#message-box')
+                });
+
+                console.log("States: ", states);
+
+                // 5. Create DFA
+                const dfa = new DFA(states, sigma_in);
+
+                // 6. Test string
+                tmp_str = test_string.split("");
+                $('<label style="width: 100%;">...reading test string: '+tmp_str+'</label>').appendTo('#message-box')
+                starter = states.get(q0_in)
+                dfa.valid(tmp_str, starter);
+                
+            }
+        });
+
+        </script>
+    </body>
+
+</html>
